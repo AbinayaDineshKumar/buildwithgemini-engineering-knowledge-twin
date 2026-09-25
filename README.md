@@ -18,9 +18,10 @@ An AI-powered engineering companion built with the Google Agent Development Kit 
 * **`create_incident`**: Log new system incidents with title, severity level, affected service, description, and assigned engineer.
 * **`update_incident_status`**: Update the status of existing Firestore incident documents.
 
-### 3. 🎨 System Architecture Diagrams (Gemini & Cloud Storage)
-* **`generate_architecture_diagram`**: Generates visual system architecture and component diagrams using `gemini-3.1-flash-lite-image`.
-* **Public Asset Hosting**: Uploads generated diagram images directly to a Google Cloud Storage bucket (`engineering-knowledge-twin-assets-8bad3776`) and returns secure public HTTPS URLs.
+### 3. 🎨 Diagram & Video Generation (Gemini Omni & Cloud Storage)
+* **`generate_architecture_diagram`**: Generates visual system architecture and component diagrams using `gemini-3.1-flash-lite-image` in the global region.
+* **`generate_item_video`**: Generates short video animations for engineering items or microservices using Google's Omni model (`gemini-omni-flash-preview`) in the global region.
+* **Dual Output & Public Asset Hosting**: Saves generated media bytes via `tool_context.save_artifact` for the Playground Artifacts panel, uploads bytes to Google Cloud Storage (`engineering-knowledge-twin-assets-8bad3776`), and returns public HTTPS URLs.
 
 ### 4. 🎛️ Agent-to-User Interface (A2UI v0.8)
 * **Structured UI Components**: Uses an `after_model_callback` (`a2ui_callback`) built with `A2uiSchemaManager` (v0.8) and `BasicCatalog`.

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 import datetime
 import json
 import os
@@ -325,6 +326,51 @@ async def generate_architecture_diagram(
     return f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{blob_name}"
 
 
+async def generate_item_video(
+    prompt: str, tool_context: ToolContext = None
+) -> str:
+    """Generate a short video animation for an engineering item or microservice using gemini-omni-flash-preview in the global region.
+
+    Args:
+        prompt: Description of the engineering item or microservice video animation to generate.
+        tool_context: Tool context injected by ADK to manage session artifacts.
+
+    Returns:
+        The public HTTPS URL of the generated video stored in Cloud Storage.
+    """
+    client = genai.Client(vertexai=True, location="global")
+    interaction = client.interactions.create(
+        model="gemini-omni-flash-preview",
+        input=f"Short video animation showing: {prompt}",
+    )
+
+    if not hasattr(interaction, "output_video") or not interaction.output_video:
+        return "Failed to generate video: no video output returned by the model."
+
+    data = interaction.output_video.data
+    if isinstance(data, str):
+        video_bytes = base64.b64decode(data)
+    else:
+        video_bytes = data
+
+    mime_type = getattr(interaction.output_video, "mime_type", None) or "video/mp4"
+    filename = f"video_{int(datetime.datetime.now(datetime.timezone.utc).timestamp())}.mp4"
+
+    # 1. Save artifact so it shows up in Playground's Artifacts panel
+    if tool_context:
+        artifact_part = types.Part.from_bytes(data=video_bytes, mime_type=mime_type)
+        await tool_context.save_artifact(filename=filename, artifact=artifact_part)
+
+    # 2. Upload directly to public Cloud Storage bucket without writing local files
+    storage_client = storage.Client(project=FIRESTORE_PROJECT_ID)
+    bucket = storage_client.bucket(GCS_BUCKET_NAME)
+    blob_name = f"videos/{filename}"
+    blob = bucket.blob(blob_name)
+    blob.upload_from_string(video_bytes, content_type=mime_type)
+
+    return f"https://storage.googleapis.com/{GCS_BUCKET_NAME}/{blob_name}"
+
+
 schema_manager = A2uiSchemaManager(
     version="0.8",
     catalogs=[BasicCatalog.get_config("0.8")],
@@ -335,6 +381,7 @@ instruction = schema_manager.generate_system_prompt(
         "You are the Engineering Knowledge Twin Agent for NovaSmart. "
         "You help engineers troubleshoot system outages, track active incidents in Firestore, "
         "check live microservice health, query public GitHub repositories, generate architecture diagrams, "
+        "generate item videos using Omni Flash, "
         "execute python code in a secure sandbox, and manage engineering knowledge. "
         "You remember the user's stated preferences and facts from previous conversations and use them to personalize responses."
     ),
@@ -394,6 +441,7 @@ root_agent = Agent(
         check_service_health,
         get_github_repo_info,
         generate_architecture_diagram,
+        generate_item_video,
     ],
     after_agent_callback=generate_memories_callback,
     after_model_callback=a2ui_callback,
