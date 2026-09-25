@@ -1,94 +1,124 @@
-# simple-agent
+# Engineering Knowledge Twin 🤖🛠️
 
-Simple ReAct agent
-Agent generated with `agents-cli` version `1.1.0`
+An AI-powered engineering companion built with the Google Agent Development Kit (ADK), Vertex AI Memory Bank, Cloud Firestore, Cloud Storage, and A2UI. The Engineering Knowledge Twin assists site reliability engineers (SREs) and software developers in tracking incidents, checking microservice health, querying public GitHub repositories, generating architecture diagrams, executing Python code in a secure sandbox, and maintaining long-term memory across sessions.
 
-## Project Structure
-
-```
-simple-agent/
-├── app/         # Core agent code
-│   ├── agent.py               # Main agent logic
-│   ├── fast_api_app.py        # FastAPI Backend server
-│   └── app_utils/             # App utilities and helpers
-├── tests/                     # Unit, integration, and load tests
-├── GEMINI.md                  # AI-assisted development guide
-└── pyproject.toml             # Project dependencies
-```
-
-> 💡 **Tip:** Use [Antigravity CLI](https://antigravity.google/) for AI-assisted development - project context is pre-configured in `GEMINI.md`.
-
-## Requirements
-
-Before you begin, ensure you have:
-- **uv**: Python package manager (used for all dependency management in this project) - [Install](https://docs.astral.sh/uv/getting-started/installation/) ([add packages](https://docs.astral.sh/uv/concepts/dependencies/) with `uv add <package>`)
-- **agents-cli**: Agents CLI - Install with `uv tool install google-agents-cli`
-- **Google Cloud SDK**: For GCP services - [Install](https://cloud.google.com/sdk/docs/install)
-
-
-## Quick Start
-
-Install `agents-cli` and its skills if not already installed:
-
-```bash
-uvx google-agents-cli setup
-```
-
-Install required packages:
-
-```bash
-agents-cli install
-```
-
-Test the agent with a local web server:
-
-```bash
-agents-cli playground
-```
-
-You can also use features from the [ADK](https://adk.dev/) CLI with `uv run adk`.
-
-## Commands
-
-| Command              | Description                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------- |
-| `agents-cli install` | Install dependencies using uv                                                         |
-| `agents-cli playground` | Launch local development environment                                                  |
-| `agents-cli lint`    | Run code quality checks                                                               |
-| `agents-cli eval`    | Evaluate agent behavior (generate, grade, analyze, and more — see `agents-cli eval --help`) |
-| `uv run pytest tests/unit tests/integration` | Run unit and integration tests                                                        |
-| `agents-cli deploy`  | Deploy agent to Agent Runtime                                                                |
-| `agents-cli publish gemini-enterprise` | Register deployed agent to Gemini Enterprise                    || [A2A Inspector](https://github.com/a2aproject/a2a-inspector) | Launch A2A Protocol Inspector                                                        |
-
-## 🛠️ Project Management
-
-| Command | What It Does |
-|---------|--------------|
-| `agents-cli scaffold enhance` | Add CI/CD pipelines and Terraform infrastructure |
-| `agents-cli infra cicd` | One-command setup of entire CI/CD pipeline + infrastructure |
-| `agents-cli scaffold upgrade` | Auto-upgrade to latest version while preserving customizations |
+![Engineering Knowledge Twin Demo](demo.gif)
 
 ---
 
-## Development
+## 🌟 Key Capabilities
 
-Edit your agent logic in `app/agent.py` and test with `agents-cli playground` - it auto-reloads on save.
+### 1. 🧠 Long-Term Memory (Vertex AI Memory Bank)
+* **Preloaded Fact Retrieval**: Uses `PreloadMemoryTool` and `load_memory` to search long-term memory for user roles, technical preferences, and historical facts.
+* **Automatic Fact Extraction**: Employs an `after_agent_callback` (`generate_memories_callback`) that automatically extracts facts and saves session context to Vertex AI Memory Bank across turns.
 
-## Deployment
+### 2. 📋 Incident Management (Google Cloud Firestore)
+* **`list_incidents`**: Query active engineering incidents filtered by service name or status (`OPEN`, `INVESTIGATING`, `RESOLVED`, `CLOSED`).
+* **`get_incident_details`**: Fetch complete incident records by ID from Cloud Firestore.
+* **`create_incident`**: Log new system incidents with title, severity level, affected service, description, and assigned engineer.
+* **`update_incident_status`**: Update the status of existing Firestore incident documents.
 
-```bash
-gcloud config set project <your-project-id>
-agents-cli deploy
+### 3. 🎨 System Architecture Diagrams (Gemini & Cloud Storage)
+* **`generate_architecture_diagram`**: Generates visual system architecture and component diagrams using `gemini-3.1-flash-lite-image`.
+* **Public Asset Hosting**: Uploads generated diagram images directly to a Google Cloud Storage bucket (`engineering-knowledge-twin-assets-8bad3776`) and returns secure public HTTPS URLs.
+
+### 4. 🎛️ Agent-to-User Interface (A2UI v0.8)
+* **Structured UI Components**: Uses an `after_model_callback` (`a2ui_callback`) built with `A2uiSchemaManager` (v0.8) and `BasicCatalog`.
+* **Rich Card Rendering**: Renders responses as structured Cards, Columns, Rows, Text elements, Image views, and interactive Action/Prompt Chips.
+
+### 5. 💻 Secure Code Execution
+* **`AgentEngineSandboxCodeExecutor`**: Safely executes Python code blocks within Google Agent Engine's isolated sandbox environment.
+
+### 6. 🌐 External Diagnostic & GitHub Tools
+* **`check_service_health`**: Inspect real-time status codes, HTTP latency, and endpoints for internal microservices (`auth-service`, `billing-service`, `analytics-frontend`).
+* **`get_github_repo_info`**: Query GitHub's REST API for public repository statistics (stars, forks, open issues, license, primary language).
+
+---
+
+## 🏗️ Architecture Overview
+
+```
+               +----------------------------------+
+               |     Web Browser (Chat UI)        |
+               +----------------------------------+
+                                |
+                                v
+               +----------------------------------+
+               |      FastAPI Proxy (main.py)     |
+               +----------------------------------+
+                                |  (A2A Protocol)
+                                v
+               +----------------------------------+
+               |     ADK Root Agent (Gemini 2.5)  |
+               +----------------------------------+
+                 /        |        |        \
+                v         v        v         v
+         [Firestore]   [Memory]  [GCS]   [Sandbox]
+          Incidents     Bank     Images   Python Code
 ```
 
-To add CI/CD and Terraform, run `agents-cli scaffold enhance`.
-To set up your production infrastructure, run `agents-cli infra cicd`.
+---
 
-## Observability
+## 🛠️ Setup & Local Running Instructions
 
-Built-in telemetry exports to Cloud Trace, BigQuery, and Cloud Logging.
+### Prerequisites
+* Python 3.10+
+* Google Cloud CLI (`gcloud`) authenticated with access to a GCP project.
 
-## A2A Inspector
+### 1. Install Dependencies
+```bash
+# Install root agent dependencies
+pip install -r requirements.txt
 
-This agent supports the [A2A Protocol](https://a2a-protocol.org/). Use the [A2A Inspector](https://github.com/a2aproject/a2a-inspector) to test interoperability.
-See the [A2A Inspector docs](https://github.com/a2aproject/a2a-inspector) for details.
+# Install frontend proxy dependencies
+pip install -r frontend/requirements.txt
+```
+
+### 2. Configure Environment Variables
+Set the Google Cloud project and required service identifiers:
+```bash
+export FIRESTORE_PROJECT_ID="your-gcp-project-id"
+export GCS_BUCKET_NAME="your-gcs-bucket-name"
+export AGENT_ENGINE_RESOURCE_NAME="projects/PROJECT/locations/LOCATION/reasoningEngines/ENGINE_ID"
+export AGENT_DIRECTORY="app"
+```
+
+### 3. Run the Agent Locally with ADK Dev UI
+To launch the agent using the Agent Development Kit interactive web inspector:
+```bash
+adk web app
+```
+Navigate to `http://localhost:8000/dev-ui/?app=app` in your web browser.
+
+### 4. Run the Custom FastAPI Frontend Proxy
+To run the lightweight chat interface locally:
+```bash
+cd frontend
+python main.py
+```
+Navigate to `http://localhost:8080` in your web browser.
+
+---
+
+## 🚀 Deployment Instructions
+
+### Deploy Agent to Agent Runtime
+```bash
+agents-cli deploy agent_runtime --project your-gcp-project-id --region us-east1
+```
+
+### Deploy Frontend Proxy to Cloud Run
+```bash
+gcloud run deploy engineering-knowledge-twin-frontend \
+  --source ./frontend \
+  --region us-east1 \
+  --allow-unauthenticated \
+  --memory 256Mi \
+  --set-env-vars AGENT_ENGINE_RESOURCE_NAME="YOUR_REASONING_ENGINE_RESOURCE_NAME",AGENT_DIRECTORY="app" \
+  --project your-gcp-project-id
+```
+
+---
+
+## 📄 License
+Licensed under the Apache License, Version 2.0.
